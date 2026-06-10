@@ -1,6 +1,21 @@
 {
   "posts": [
     {
+      "slug": "proof-of-concept-photo",
+      "title": "Proof of Concept: Photos on the Permaweb",
+      "date": "2026-06-10",
+      "author": "Shaojun Wang",
+      "tags": [
+        "arweave",
+        "proof-of-concept",
+        "photo",
+        "permaweb"
+      ],
+      "description": "Successfully uploaded and permanently stored a photo on Arweave.",
+      "published": true,
+      "arweaveTxId": null
+    },
+    {
       "slug": "hello-permaweb",
       "title": "Hello, Permaweb — Why This Blog Exists",
       "date": "2026-06-10",
