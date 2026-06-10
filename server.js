@@ -4,6 +4,7 @@ const path = require('path');
 const fm = require('front-matter');
 const { marked } = require('marked');
 const config = require('./config');
+const { mountViewer } = require("./viewer");
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -173,6 +174,9 @@ app.get('/:slug', (req, res) => {
     }
   });
 });
+
+// ─── Mount viewer ────────────────────────────────────────────
+mountViewer(app);
 
 // ─── Start ────────────────────────────────────────────────────────
 
