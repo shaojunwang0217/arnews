@@ -1,0 +1,22 @@
+[Unit]
+Description=Arnews — Arweave News Blog
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/arnews
+ExecStart=/usr/bin/node /opt/arnews/server.js
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=PORT=3005
+
+# Security
+NoNewPrivileges=true
+ProtectHome=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

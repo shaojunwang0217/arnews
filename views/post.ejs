@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="<%= site.language %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= post.title %> — <%= site.title %></title>
+  <meta name="description" content="<%= post.description || site.description %>">
+  <meta name="author" content="<%= post.author || site.author %>">
+  <% (post.tags || []).forEach(function(tag) { %>
+    <meta name="keywords" content="<%= tag %>">
+  <% }); %>
+  <meta property="og:title" content="<%= post.title %>">
+  <meta property="og:description" content="<%= post.description || '' %>">
+  <meta property="og:site_name" content="<%= site.title %>">
+  <meta property="og:url" content="<%= post.url %>">
+  <meta property="og:type" content="article">
+  <meta property="article:published_time" content="<%= post.date %>">
+  <meta property="article:author" content="<%= post.author || site.author %>">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="alternate" type="application/rss+xml" title="<%= site.title %> RSS" href="<%= site.url %>/feed/rss.xml">
+  <link rel="alternate" type="application/atom+xml" title="<%= site.title %> Atom" href="<%= site.url %>/feed/atom.xml">
+  <link rel="stylesheet" href="/news/styles.css">
+  <link rel="canonical" href="<%= post.url %>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📰</text></svg>">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="<%= site.url %>/" class="no-underline"><h1><%= site.title %></h1></a>
+      <p class="subtitle"><%= site.subtitle %></p>
+      <nav>
+        <a href="<%= site.url %>/">← Back to Home</a>
+        <a href="<%= site.url %>/feed/rss.xml">RSS</a>
+        <a href="<%= site.url %>/feed/atom.xml">Atom</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <article class="post-full">
+      <header class="post-header">
+        <h1><%= post.title %></h1>
+        <div class="post-meta">
+          <time datetime="<%= post.date %>"><%= new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></time>
+          <% if (post.author) { %><span class="author"> · by <%= post.author %></span><% } %>
+          <% if (post.tags && post.tags.length) { %>
+            <span class="tags">
+              <% post.tags.forEach(function(tag) { %>
+                <span class="tag"><%= tag %></span>
+              <% }); %>
+            </span>
+          <% } %>
+        </div>
+      </header>
+
+      <div class="post-content">
+        <%- post.html %>
+      </div>
+
+      <% if (post.arweaveUrl) { %>
+        <div class="arweave-notice">
+          <p>🔒 This article is permanently stored on the Arweave permaweb.
+          It cannot be deleted, modified, or censored.</p>
+          <a href="<%= post.arweaveUrl %>" target="_blank" rel="noopener" class="arweave-link">
+            View on Arweave ↗
+          </a>
+        </div>
+      <% } %>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>🧊 Stored on the <a href="https://arweave.org" target="_blank" rel="noopener">Arweave permaweb</a> · Immutable · Uncensorable</p>
+      <p class="rss-links">
+        <a href="<%= site.url %>/feed/rss.xml">RSS Feed</a> · 
+        <a href="<%= site.url %>/feed/atom.xml">Atom Feed</a>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,291 @@
+/* ─── Reset & Base ─────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #faf9f6;
+  --fg: #1a1a1a;
+  --muted: #666;
+  --border: #e5e3db;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --card-bg: #fff;
+  --tag-bg: #f0efeb;
+  --tag-fg: #555;
+  --arweave-bg: #f0fdf4;
+  --arweave-border: #bbf7d0;
+  --arweave-fg: #166534;
+  --max-w: 700px;
+}
+
+html { font-size: 16px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Georgia, serif;
+  line-height: 1.7;
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+a.no-underline:hover { text-decoration: none; color: inherit; }
+
+/* ─── Header ──────────────────────────────────────────────────── */
+
+.site-header {
+  padding: 3rem 0 2rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2.5rem;
+}
+
+.site-header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  margin-bottom: 0.3rem;
+}
+
+.site-header a h1:hover { color: var(--accent); }
+
+.subtitle {
+  color: var(--muted);
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+nav {
+  display: flex;
+  gap: 1.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.9rem;
+}
+
+nav a { color: var(--muted); }
+nav a:hover { color: var(--accent); }
+
+/* ─── Post List (Homepage) ────────────────────────────────────── */
+
+.post-preview {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  transition: box-shadow 0.15s;
+}
+
+.post-preview:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.post-preview h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+}
+
+.post-preview h2 a { color: var(--fg); }
+.post-preview h2 a:hover { color: var(--accent); }
+
+.post-meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.tags { margin-left: 0.3rem; }
+.tag {
+  display: inline-block;
+  background: var(--tag-bg);
+  color: var(--tag-fg);
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  margin: 0 0.15rem;
+}
+
+.excerpt {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+}
+
+.read-more {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 0;
+  color: var(--muted);
+}
+
+/* ─── Single Post ──────────────────────────────────────────────── */
+
+.post-full { margin-bottom: 3rem; }
+
+.post-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.post-header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.75rem;
+}
+
+.post-content {
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+.post-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.post-content h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.post-content p { margin-bottom: 1.25rem; }
+
+.post-content ul, .post-content ol {
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.post-content li { margin-bottom: 0.4rem; }
+
+.post-content blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 0.5rem 1rem;
+  margin: 1.5rem 0;
+  background: #f8f7f4;
+  border-radius: 0 4px 4px 0;
+  font-style: italic;
+  color: #444;
+}
+
+.post-content pre {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 1rem 1.25rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.post-content code {
+  background: #f0efeb;
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.post-content pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+.post-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 1.5rem 0;
+}
+
+.post-content hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+
+/* ─── Arweave Notice ──────────────────────────────────────────── */
+
+.arweave-notice {
+  background: var(--arweave-bg);
+  border: 1px solid var(--arweave-border);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin: 2.5rem 0;
+  text-align: center;
+}
+
+.arweave-notice p {
+  color: var(--arweave-fg);
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+}
+
+.arweave-link {
+  display: inline-block;
+  background: #166534;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.arweave-link:hover {
+  background: #14532d;
+  color: white;
+  text-decoration: none;
+}
+
+/* ─── Footer ──────────────────────────────────────────────────── */
+
+.site-footer {
+  padding: 2rem 0;
+  border-top: 1px solid var(--border);
+  margin-top: 3rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.site-footer a { color: var(--muted); }
+.site-footer a:hover { color: var(--accent); }
+
+.rss-links { margin-top: 0.5rem; }
+
+/* ─── Responsive ───────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .site-header { padding: 2rem 0 1.5rem; }
+  .site-header h1 { font-size: 1.5rem; }
+  .post-header h1 { font-size: 1.5rem; }
+  .post-preview { padding: 1.25rem; }
+  .container { padding: 0 1rem; }
+}

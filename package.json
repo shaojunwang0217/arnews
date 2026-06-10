@@ -1,0 +1,21 @@
+{
+  "name": "arnews",
+  "version": "1.0.0",
+  "description": "Censorship-resistant news blog on Arweave",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "new-post": "node scripts/new-post.js",
+    "deploy": "node scripts/deploy.js",
+    "status": "node scripts/deploy.js --status"
+  },
+  "dependencies": {
+    "@ardrive/turbo-sdk": "^1.41.3",
+    "dotenv": "^16.3.1",
+    "ejs": "^3.1.10",
+    "express": "^4.18.2",
+    "express-ejs-layouts": "^2.5.1",
+    "front-matter": "^4.0.2",
+    "marked": "^9.1.6"
+  }
+}

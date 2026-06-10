@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="<%= site.language %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= site.title %> — <%= site.subtitle %></title>
+  <meta name="description" content="<%= site.description %>">
+  <meta name="author" content="<%= site.author %>">
+  <meta property="og:title" content="<%= site.title %>">
+  <meta property="og:description" content="<%= site.description %>">
+  <meta property="og:site_name" content="<%= site.title %>">
+  <meta property="og:url" content="<%= site.url %>">
+  <meta property="og:type" content="website">
+  <link rel="alternate" type="application/rss+xml" title="<%= site.title %> RSS" href="<%= site.url %>/feed/rss.xml">
+  <link rel="alternate" type="application/atom+xml" title="<%= site.title %> Atom" href="<%= site.url %>/feed/atom.xml">
+  <link rel="stylesheet" href="/news/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📰</text></svg>">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="<%= site.url %>/" class="no-underline"><h1><%= site.title %></h1></a>
+      <p class="subtitle"><%= site.subtitle %></p>
+      <nav>
+        <a href="<%= site.url %>/">Home</a>
+        <a href="<%= site.url %>/feed/rss.xml">RSS</a>
+        <a href="<%= site.url %>/feed/atom.xml">Atom</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="post-list">
+      <% if (posts.length === 0) { %>
+        <div class="empty-state">
+          <p>No posts yet. Check back soon.</p>
+        </div>
+      <% } else { %>
+        <% posts.forEach(function(post) { %>
+          <article class="post-preview">
+            <h2><a href="<%= post.url %>"><%= post.title %></a></h2>
+            <div class="post-meta">
+              <time datetime="<%= post.date %>"><%= new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></time>
+              <% if (post.author) { %><span class="author"> · by <%= post.author %></span><% } %>
+              <% if (post.tags && post.tags.length) { %>
+                <span class="tags">
+                  <% post.tags.forEach(function(tag) { %>
+                    <span class="tag"><%= tag %></span>
+                  <% }); %>
+                </span>
+              <% } %>
+            </div>
+            <p class="excerpt"><%= post.excerpt %></p>
+            <a href="<%= post.url %>" class="read-more">Read more →</a>
+          </article>
+        <% }); %>
+      <% } %>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>🧊 Stored on the <a href="https://arweave.org" target="_blank" rel="noopener">Arweave permaweb</a> · Immutable · Uncensorable</p>
+      <p class="rss-links">
+        <a href="<%= site.url %>/feed/rss.xml">RSS Feed</a> · 
+        <a href="<%= site.url %>/feed/atom.xml">Atom Feed</a> · 
+        <a href="<%= site.url %>/sitemap.xml">Sitemap</a>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>
