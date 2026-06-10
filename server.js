@@ -168,6 +168,7 @@ app.get('/:slug', (req, res) => {
     post: {
       ...post,
       url: postUrl(post.slug),
+      arweaveTxId: entry?.arweaveTxId || null,
       arweaveUrl: entry?.arweaveTxId ? `https://arweave.net/${entry.arweaveTxId}` : null
     }
   });
