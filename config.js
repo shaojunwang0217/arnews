@@ -14,7 +14,7 @@ module.exports = {
 
   // Arweave wallet (optional — blog works without it)
   arweave: {
-    walletPath: process.env.AR_WALLET || '/root/arweave-wallet.json',
+    walletPath: process.env.AR_WALLET || __dirname + '/data/wallet.json',
     gateway: 'https://arweave.net'
   },
 

@@ -1,8 +1,10 @@
 /**
- * Upload endpoint — accepts image/video files, stores locally AND uploads to Arweave via Turbo.
+ * Upload endpoint — accepts image/video files, stores locally.
+ * Arweave upload is OPT-IN (checkbox on form) for security/transparency.
  */
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const multer = require('multer');
 const { TurboFactory, ArweaveSigner } = require('@ardrive/turbo-sdk');
 const config = require('./config');
@@ -10,11 +12,10 @@ const config = require('./config');
 const UPLOAD_DIR = path.join(config.paths.public, 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-// Track uploaded files locally
 const REGISTRY_PATH = path.join(__dirname, 'data', 'uploads.json');
 let uploadRegistry = { files: [] };
 if (fs.existsSync(REGISTRY_PATH)) {
-  try { uploadRegistry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf-8')); } catch {}
+  try { uploadRegistry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf-8')); } catch(e) { console.log("[wallet]", e.message); }
 }
 
 const storage = multer.diskStorage({
@@ -42,6 +43,17 @@ const upload = multer({
   }
 });
 
+// Compute wallet address once
+let WALLET_ADDR = null;
+try {
+  const walletPath = config.arweave.walletPath;
+  if (fs.existsSync(walletPath)) {
+    const jwk = JSON.parse(fs.readFileSync(walletPath, 'utf-8'));
+    const h = crypto.createHash('sha256').update(Buffer.from(jwk.n, 'base64url')).digest();
+    WALLET_ADDR = h.toString('base64url');
+  }
+} catch(e) { console.log("[wallet]", e.message); }
+
 function mountUpload(app) {
   // ─── Upload form page ──────────────────────────────────────────
   app.get('/upload', (req, res) => {
@@ -54,13 +66,20 @@ function mountUpload(app) {
 .upload-page{max-width:600px;margin:0 auto;padding:2rem 1rem}
 form{background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1.5rem}
 input[type="file"]{display:block;margin-bottom:1rem;padding:0.5rem;border:1px solid var(--border);border-radius:4px;width:100%}
+label{display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;font-size:0.9rem;cursor:pointer}
+label input[type="checkbox"]{width:1.1rem;height:1.1rem;cursor:pointer}
 button{background:var(--accent);color:white;border:none;padding:0.6rem 1.2rem;border-radius:6px;font-size:0.95rem;cursor:pointer;width:100%}
 button:hover{background:var(--accent-hover)}
 button:disabled{opacity:0.6}
+.notice{background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:0.85rem;color:#92400e}
+.notice code{font-size:0.8rem;word-break:break-all}
 .preview{margin-top:1.5rem;padding:1rem;background:#f8f7f4;border-radius:6px;display:none}
 .preview img,.preview video{max-width:100%;max-height:300px;border-radius:4px}
 .preview code{display:block;background:#1e1e2e;color:#cdd6f4;padding:0.75rem;border-radius:4px;margin-top:0.5rem;font-size:0.85rem;word-break:break-all}
 .preview .label{font-size:0.85rem;color:#666;margin-top:0.75rem;margin-bottom:0.25rem}
+.preview .badge{display:inline-block;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:600}
+.badge-ar{background:#dcfce7;color:#166534}
+.badge-local{background:#fef3c7;color:#92400e}
 </style></head>
 <body>
 <header class="site-header"><div class="container">
@@ -69,15 +88,22 @@ button:disabled{opacity:0.6}
 <nav><a href="/news/">Back to blog</a> · <a href="/news/price">Pricing</a></nav>
 </div></header>
 <div class="upload-page">
+${WALLET_ADDR ? `<div class="notice">
+<strong>🔐 Privacy notice:</strong> Arweave uploads are signed by the site wallet (<code>${WALLET_ADDR}</code>) and are permanently public on the permaweb. You can upload locally only (no blockchain) by leaving the checkbox unchecked below.
+</div>` : ''}
 <form id="f" enctype="multipart/form-data">
 <input type="file" id="fileInput" name="file" required>
-<button type="submit" id="btn">Upload to Arweave</button>
+${WALLET_ADDR ? `<label>
+<input type="checkbox" id="arweaveCheck" name="toArweave" value="1">
+Upload to Arweave permaweb (permanent, public, linked to wallet above)
+</label>` : ''}
+<button type="submit" id="btn">Upload</button>
 </form>
 <div class="preview" id="preview">
 <div id="mediaPreview"></div>
 <div class="label">Embed in markdown:</div>
 <code id="embedCode"></code>
-<div class="label">Local URL:</div>
+<div class="label">URL:</div>
 <code id="directUrl" style="margin-top:0.25rem"></code>
 <p id="copied" style="color:var(--arweave-fg);font-size:0.85rem;margin-top:0.25rem"></p>
 </div>
@@ -86,6 +112,8 @@ button:disabled{opacity:0.6}
 document.getElementById('f').onsubmit=async(e)=>{
 e.preventDefault();const fd=new FormData();
 fd.append('file',document.getElementById('fileInput').files[0]);
+const cb=document.getElementById('arweaveCheck');
+if(cb&&cb.checked)fd.append('toArweave','1');
 const btn=document.getElementById('btn');btn.textContent='Uploading...';btn.disabled=true;
 try{
 const r=await fetch('/news/api/upload',{method:'POST',body:fd});
@@ -97,9 +125,11 @@ else if(d.type.startsWith('image/')) m.innerHTML='<img src="/news/uploads/'+d.fi
 else if(d.type.startsWith('audio/')) m.innerHTML='<audio controls src="/news/uploads/'+d.filename+'"></audio>';
 else m.innerHTML='<p>File uploaded: '+d.filename+'</p>';
 document.getElementById('embedCode').textContent=d.markdown;
-document.getElementById('directUrl').textContent='/news/view/'+d.id;
+const urlDisplay=d.arweaveTxId?'/news/view/'+d.id+' <span class="badge badge-ar">Arweave</span>':'/news/uploads/'+d.filename+' <span class="badge badge-local">Local only</span>';
+document.getElementById('directUrl').innerHTML=urlDisplay;
+document.getElementById('copied').textContent=d.arweaveTxId?'Uploaded to Arweave tx: '+d.arweaveTxId:'Saved locally (not on Arweave)';
 }catch(e){alert('Failed: '+e.message)}
-btn.textContent='Upload to Arweave';btn.disabled=false;
+btn.textContent='Upload';btn.disabled=false;
 };
 </script>
 </body></html>`);
@@ -115,28 +145,31 @@ btn.textContent='Upload to Arweave';btn.disabled=false;
       const mimeType = file.mimetype;
       const fileName = file.filename;
       const fileSize = file.size;
+      const toArweave = req.body.toArweave === '1';
 
       let arweaveId = null;
 
-      // Upload to Arweave via Turbo if wallet exists
-      const walletPath = config.arweave.walletPath;
-      if (fs.existsSync(walletPath)) {
-        try {
-          const jwk = JSON.parse(fs.readFileSync(walletPath, 'utf-8'));
-          const signer = new ArweaveSigner(jwk);
-          const turbo = TurboFactory.authenticated({ signer });
-          const fileStats = fs.statSync(filePath);
-          const result = await turbo.uploadFile({
-            fileStreamFactory: () => fs.createReadStream(filePath),
-            fileSizeFactory: () => fileStats.size,
-            tags: [
-              { name: 'Content-Type', value: mimeType },
-              { name: 'App-Name', value: 'The-Repository' }
-            ]
-          });
-          arweaveId = result.id;
-        } catch (err) {
-          console.log('Arweave upload failed (local copy saved):', err.message);
+      // Only upload to Arweave if user explicitly opted in
+      if (toArweave) {
+        const walletPath = config.arweave.walletPath;
+        if (fs.existsSync(walletPath)) {
+          try {
+            const jwk = JSON.parse(fs.readFileSync(walletPath, 'utf-8'));
+            const signer = new ArweaveSigner(jwk);
+            const turbo = TurboFactory.authenticated({ signer });
+            const fileStats = fs.statSync(filePath);
+            const result = await turbo.uploadFile({
+              fileStreamFactory: () => fs.createReadStream(filePath),
+              fileSizeFactory: () => fileStats.size,
+              tags: [
+                { name: 'Content-Type', value: mimeType },
+                { name: 'App-Name', value: 'The-Repository' }
+              ]
+            });
+            arweaveId = result.id;
+          } catch (err) {
+            console.log('Arweave upload failed (local only):', err.message);
+          }
         }
       }
 
@@ -153,7 +186,7 @@ btn.textContent='Upload to Arweave';btn.disabled=false;
       uploadRegistry.files.push(entry);
       fs.writeFileSync(REGISTRY_PATH, JSON.stringify(uploadRegistry, null, 2));
 
-      // Build markdown embed
+      // Build markdown embed (uses local path; if on Arweave, viewer can serve it)
       const viewUrl = arweaveId ? '/news/view/' + arweaveId : '/news/uploads/' + fileName;
       let markdown;
       if (mimeType.startsWith('image/')) {
@@ -172,6 +205,7 @@ btn.textContent='Upload to Arweave';btn.disabled=false;
         type: mimeType,
         size: fileSize,
         arweaveTxId: arweaveId,
+        signedBy: arweaveId ? WALLET_ADDR : null,
         markdown: markdown,
         url: viewUrl,
         arweaveUrl: arweaveId ? 'https://arweave.net/' + arweaveId : null
@@ -194,7 +228,6 @@ btn.textContent='Upload to Arweave';btn.disabled=false;
         '1 GiB video': '~$29.44'
       };
 
-      // Try to get real-time authenticated pricing
       const walletPath = config.arweave.walletPath;
       if (fs.existsSync(walletPath)) {
         try {
@@ -226,6 +259,7 @@ btn.textContent='Upload to Arweave';btn.disabled=false;
         notes: 'Turbo bundled pricing. Upload via Turbo bundles transactions for efficiency.',
         estimates: estimates,
         yourBalance: balance,
+        walletAddress: WALLET_ADDR,
         topUpLink: 'https://turbo.ar.io/'
       });
 
