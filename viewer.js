@@ -73,31 +73,47 @@ function mountViewer(app) {
 }
 
 function serveContent(res, txId, body, declaredType, gw) {
-  // Try to detect actual content type from magic bytes
   const sniffed = sniffContentType(body);
   const actualType = sniffed || declaredType || 'application/octet-stream';
 
-  // If it's binary (image/video/audio/pdf), serve raw
-  if (sniffed || actualType.startsWith('image/') || actualType.startsWith('video/') || 
-      actualType.startsWith('audio/') || actualType === 'application/pdf') {
-    res.set('Content-Type', actualType);
-    res.set('X-Arweave-Gateway', gw.label);
-    res.set('X-Arweave-TxId', txId);
-    res.set('Content-Length', body.length);
-    res.set('Cache-Control', 'public, max-age=31536000, immutable');
-    res.set('Content-Disposition', 'inline');
-    return res.send(body);
+  const banner = buildBanner(txId, gw.url, gw.label);
+  res.set('X-Arweave-Gateway', gw.label);
+  res.set('X-Arweave-TxId', txId);
+
+  // Images: wrap in an HTML page so browser always renders
+  if (sniffed === 'image/jpeg' || sniffed === 'image/png' || sniffed === 'image/gif' ||
+      sniffed === 'image/webp' || sniffed === 'image/bmp' ||
+      actualType.startsWith('image/')) {
+    const b64 = body.toString('base64');
+    const dataUri = 'data:' + actualType + ';base64,' + b64;
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Arweave Image — ${txId.slice(0, 12)}…</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#1a1a1a;text-align:center}img{max-width:100%;max-height:calc(100vh - 50px)}.bar{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0fdf4;border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;font-size:0.85rem;color:#166534;display:flex;align-items:center;gap:0.5rem;position:sticky;top:0;z-index:100;flex-wrap:wrap}.bar a{color:#166534;font-weight:500}.bar .close{margin-left:auto;border:1px solid #bbf7d0;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.8rem;color:#166534;text-decoration:none}.bar .close:hover{background:#dcfce7}</style></head><body>${banner}<img src="${dataUri}" alt="Arweave content"></body></html>`;
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
   }
 
-  // For HTML/text: inject banner
-  const banner = buildBanner(txId, gw.url, gw.label);
+  // Video/Audio: wrap in HTML with player + banner
+  if (sniffed || actualType.startsWith('video/') || actualType.startsWith('audio/') || actualType === 'application/pdf') {
+    const b64 = body.toString('base64');
+    const dataUri = 'data:' + actualType + ';base64,' + b64;
+    let mediaTag;
+    if (actualType.startsWith('video/')) {
+      mediaTag = '<video controls style="max-width:100%;max-height:calc(100vh - 50px)"><source src="' + dataUri + '" type="' + actualType + '"></video>';
+    } else if (actualType.startsWith('audio/')) {
+      mediaTag = '<audio controls src="' + dataUri + '"></audio>';
+    } else {
+      mediaTag = '<embed src="' + dataUri + '" type="' + actualType + '" style="width:100%;height:calc(100vh - 50px)">';
+    }
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Arweave Media — ${txId.slice(0, 12)}…</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#1a1a1a;text-align:center;padding-top:1rem}.bar{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0fdf4;border-bottom:1px solid #bbf7d0;padding:0.5rem 1rem;font-size:0.85rem;color:#166534;display:flex;align-items:center;gap:0.5rem;position:sticky;top:0;z-index:100;flex-wrap:wrap}.bar a{color:#166534;font-weight:500}.bar .close{margin-left:auto;border:1px solid #bbf7d0;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.8rem;color:#166534;text-decoration:none}.bar .close:hover{background:#dcfce7}</style></head><body>${banner}<div style="padding:1rem">${mediaTag}</div></body></html>`;
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
+  }
+
+  // Text/HTML: inject banner into the content
   const strBody = body.toString('utf-8');
   const injected = strBody.includes('</body>')
     ? strBody.replace('</body>', banner + '\n</body>')
     : banner + '\n' + strBody;
   res.set('Content-Type', 'text/html; charset=utf-8');
-  res.set('X-Arweave-Gateway', gw.label);
-  res.set('X-Arweave-TxId', txId);
   return res.send(injected);
 }
 
