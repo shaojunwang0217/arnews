@@ -1,9 +1,11 @@
 /**
  * Arweave content proxy — fetches content from gateways server-side.
  * - HTML: injects a small banner, serves as text/html
- * - Images: proxies raw bytes with correct MIME type
- * - Video/Audio: proxies raw bytes with correct MIME type
- * - Falls back: arweave.net first (correct content-type), then turbo-gateway.com
+ * - Images/Video/Audio: serves raw bytes with correct MIME (auto-sniffed if needed)
+ * - Falls back: arweave.net first, then turbo-gateway.com
+ * 
+ * Turbo gateway always returns Content-Type: text/plain regardless of content.
+ * This module auto-detects binary types by inspecting magic bytes.
  */
 const https = require('https');
 
@@ -12,10 +14,40 @@ const gateways = [
   { url: 'https://turbo-gateway.com', label: 'Turbo (instant)' }
 ];
 
-const HTML_TYPES = ['text/html', 'text/plain'];
-const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg'];
-const AUDIO_TYPES = ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/webm'];
+// Magic byte detectors for binary content (turbo-gateway always returns text/plain)
+function sniffContentType(body) {
+  if (!body || body.length < 4) return null;
+  
+  const b0 = body[0], b1 = body[1], b2 = body[2], b3 = body[3];
+
+  // Images
+  if (b0 === 0xFF && b1 === 0xD8 && b2 === 0xFF) return 'image/jpeg';
+  if (b0 === 0x89 && b1 === 0x50 && b2 === 0x4E && b3 === 0x47) return 'image/png';
+  if (b0 === 0x47 && b1 === 0x49 && b2 === 0x46) return 'image/gif';
+  if (b0 === 0x52 && b1 === 0x49 && b2 === 0x46 && b3 === 0x46) return 'image/webp'; // RIFF...WEBP
+  if (b0 === 0x42 && b1 === 0x4D) return 'image/bmp';
+
+  // Video
+  if (b0 === 0x00 && b1 === 0x00 && b2 === 0x00 && (b3 === 0x18 || b3 === 0x1C || b3 === 0x20)) {
+    // MP4: starts with ftyp box
+    if (body.length > 8) {
+      const ftyp = body.slice(4, 8).toString();
+      if (ftyp === 'ftyp') return 'video/mp4';
+    }
+  }
+  if (b0 === 0x1A && b1 === 0x45 && b2 === 0xDF && b3 === 0xA3) return 'video/webm'; // EBML/WebM
+  if (b0 === 0x00 && b1 === 0x00 && b2 === 0x01 && b3 === 0xBA) return 'video/mpeg';
+
+  // Audio
+  if (b0 === 0x49 && b1 === 0x44 && b2 === 0x33) return 'audio/mpeg'; // ID3 tag
+  if (b0 === 0xFF && (b1 & 0xF0) === 0xF0) return 'audio/mpeg'; // MPEG sync
+  if (b0 === 0x52 && b1 === 0x49 && b2 === 0x46 && b3 === 0x46) return 'audio/wav'; // RIFF...WAVE
+  
+  // PDF
+  if (b0 === 0x25 && b1 === 0x50 && b2 === 0x44 && b3 === 0x46) return 'application/pdf';
+
+  return null;
+}
 
 function mountViewer(app) {
   app.get('/view/:txId', async (req, res) => {
@@ -24,53 +56,53 @@ function mountViewer(app) {
       return res.status(400).send('Invalid transaction ID');
     }
 
-    // Try each gateway
     let lastError = null;
     for (const gw of gateways) {
       try {
         const result = await fetchWithHeaders(`${gw.url}/${txId}`, 15000);
         if (result && result.body && result.body.length > 100) {
-          const contentType = result.contentType || 'text/plain';
-          return serveContent(res, txId, contentType, result.body, gw);
+          return serveContent(res, txId, result.body, result.contentType, gw);
         }
       } catch (err) {
         lastError = err.message;
       }
     }
 
-    // All gateways failed
     res.status(404).send(buildPending(txId, lastError));
   });
-
-  // ─── Serve uploaded media directly ──────────────────────────
-  // Files in /public/uploads/ are served by express.static already
 }
 
-function serveContent(res, txId, contentType, body, gw) {
-  // HTML: inject banner
-  if (HTML_TYPES.includes(contentType) || contentType.startsWith('text/')) {
-    const banner = buildBanner(txId, gw.url, gw.label);
-    const injected = body.includes('</body>')
-      ? body.replace('</body>', banner + '\n</body>')
-      : banner + '\n' + body;
-    res.set('Content-Type', 'text/html; charset=utf-8');
+function serveContent(res, txId, body, declaredType, gw) {
+  // Try to detect actual content type from magic bytes
+  const sniffed = sniffContentType(body);
+  const actualType = sniffed || declaredType || 'application/octet-stream';
+
+  // If it's binary (image/video/audio/pdf), serve raw
+  if (sniffed || actualType.startsWith('image/') || actualType.startsWith('video/') || 
+      actualType.startsWith('audio/') || actualType === 'application/pdf') {
+    res.set('Content-Type', actualType);
     res.set('X-Arweave-Gateway', gw.label);
     res.set('X-Arweave-TxId', txId);
-    return res.send(injected);
+    res.set('Content-Length', body.length);
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.set('Content-Disposition', 'inline');
+    return res.send(body);
   }
 
-  // Binary content (images, video, audio, pdf): serve raw with correct MIME
-  res.set('Content-Type', contentType);
+  // For HTML/text: inject banner
+  const banner = buildBanner(txId, gw.url, gw.label);
+  const strBody = body.toString('utf-8');
+  const injected = strBody.includes('</body>')
+    ? strBody.replace('</body>', banner + '\n</body>')
+    : banner + '\n' + strBody;
+  res.set('Content-Type', 'text/html; charset=utf-8');
   res.set('X-Arweave-Gateway', gw.label);
   res.set('X-Arweave-TxId', txId);
-  res.set('Content-Length', Buffer.byteLength(body));
-  res.set('Cache-Control', 'public, max-age=31536000, immutable');
-  return res.send(Buffer.from(body, 'binary'));
+  return res.send(injected);
 }
 
 function buildBanner(txId, gatewayUrl, gatewayLabel) {
-  return `<!-- served via ${gatewayLabel} -->
-<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
             background:#f0fdf4;border-bottom:1px solid #bbf7d0;
             padding:0.5rem 1rem;font-size:0.85rem;color:#166534;
             display:flex;align-items:center;gap:0.5rem;
@@ -78,7 +110,7 @@ function buildBanner(txId, gatewayUrl, gatewayLabel) {
   <span>⚡</span>
   <span>Served via <a href="${gatewayUrl}/${txId}" style="color:#166534;font-weight:500" target="_blank">${gatewayLabel}</a></span>
   <code style="font-size:0.75rem;color:#888;flex:1">${txId}</code>
-  <a href="/news/" style="border:1px solid #bbf7d0;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.8rem;color:#166534;text-decoration:none">✕ Back to blog</a>
+  <a href="/news/" style="border:1px solid #bbf7d0;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.8rem;color:#166534;text-decoration:none">✕ Back</a>
 </div>`;
 }
 
@@ -105,7 +137,6 @@ h2{margin-bottom:1rem}p{color:#666;margin-bottom:0.5rem;line-height:1.5}a{color:
 function fetchWithHeaders(url, ms) {
   return new Promise((resolve, reject) => {
     const req = https.get(url, { timeout: ms }, res => {
-      // Follow redirects (max 3)
       let redirects = 0;
       function handle(res) {
         if ((res.statusCode >= 300 && res.statusCode < 400) && res.headers.location && redirects < 3) {
@@ -116,10 +147,7 @@ function fetchWithHeaders(url, ms) {
           https.get(followUrl, { timeout: ms }, handle).on('error', reject);
           return;
         }
-
         const contentType = res.headers['content-type'] || 'text/plain';
-
-        // For binary content, collect as buffer
         const chunks = [];
         res.on('data', chunk => chunks.push(chunk));
         res.on('end', () => {
