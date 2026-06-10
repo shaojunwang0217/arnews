@@ -5,6 +5,7 @@ const fm = require('front-matter');
 const { marked } = require('marked');
 const config = require('./config');
 const { mountViewer } = require("./viewer");
+const { mountUpload } = require("./upload");
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -157,6 +158,9 @@ app.get('/feed/atom.xml', (req, res) => {
 });
 
 // Single post (catch-all — keep last route)
+mountUpload(app);
+mountViewer(app);
+
 app.get('/:slug', (req, res) => {
   const post = loadPost(req.params.slug);
   if (!post || post.published === false) return res.status(404).send('Not found');
@@ -176,7 +180,7 @@ app.get('/:slug', (req, res) => {
 });
 
 // ─── Mount viewer ────────────────────────────────────────────
-mountViewer(app);
+
 
 // ─── Start ────────────────────────────────────────────────────────
 
