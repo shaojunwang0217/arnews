@@ -61,15 +61,12 @@
         <div class="arweave-notice">
           <p>🔒 This article is permanently stored on the Arweave permaweb.
           It cannot be deleted, modified, or censored.</p>
-          <div class="arweave-links">
-            <a href="/news/view/<%= post.arweaveTxId %>" target="_blank" rel="noopener" class="arweave-link">
+          <div class="arweave-links-single">
+            <a href="/news/view/<%= post.arweaveTxId %>" rel="noopener" class="arweave-link">
               View on arweave.net ↗
             </a>
-            <a href="https://turbo-gateway.com/<%= post.arweaveTxId %>" target="_blank" rel="noopener" class="arweave-link-secondary">
-              View via Turbo ↗
-            </a>
           </div>
-          <p class="arweave-note">Turbo link works immediately. arweave.net lags by up to 24h.</p>
+          <p class="arweave-note">Content loads directly from the Arweave permawen immediately. arweave.net lags by up to 24h.</p>
         </div>
       <% } %>
     </article>
