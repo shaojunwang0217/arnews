@@ -62,7 +62,7 @@
           <p>🔒 This article is permanently stored on the Arweave permaweb.
           It cannot be deleted, modified, or censored.</p>
           <div class="arweave-links-single">
-            <a href="/news/view/<%= post.arweaveTxId %>" rel="noopener" class="arweave-link">
+            <a href="/news/view/<%= post.arweaveTxId %>?_=<%= Date.now() %>" rel="noopener" class="arweave-link">
               View on arweave.net ↗
             </a>
           </div>
