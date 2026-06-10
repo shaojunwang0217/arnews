@@ -26,6 +26,9 @@ Click the link below to view it directly on the Arweave gateway:
 
 Even if this website disappears tomorrow, that txid will still resolve on any Arweave gateway. The file cannot be deleted, edited, or censored.
 
+👉 **[Read this article on Arweave](/news/view/QYzmikUzJTIE9OJP-lQH86ViN69BOpi8I6T5N-ciFFs)** 
+*This article txid: QYzmikUzJTIE9OJP-lQH86ViN69BOpi8I6T5N-ciFFs*
+
 ## Why This Matters
 
 For a censorship-resistant news blog, photos are critical:
