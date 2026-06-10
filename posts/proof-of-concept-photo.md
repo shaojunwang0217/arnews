@@ -12,7 +12,7 @@ published: true
 
 We uploaded a photo — and it's now permanently stored on the Arweave permaweb. You're seeing it right here in this blog post, served from our local cache. But the original lives on Arweave, immutable and uncensorable, for good.
 
-![Enzo Front](/news/uploads/1781082897872-ccds2v.jpg)
+![Enzo Front](/news/raw/2XkieYvUj48640gCp9CoJUZzTR8rWwtJMQS5OUVFO4E)
 
 ## The Proof
 

@@ -70,6 +70,30 @@ function mountViewer(app) {
 
     res.status(404).send(buildPending(txId, lastError));
   });
+
+  // ─── Raw binary endpoint (for img/video/audio embeds) ────
+  app.get('/raw/:txId', async (req, res) => {
+    const { txId } = req.params;
+    if (!txId || !/^[a-zA-Z0-9_-]{43}$/.test(txId)) {
+      return res.status(400).send('Invalid txid');
+    }
+    let lastError = null;
+    for (const gw of gateways) {
+      try {
+        const result = await fetchWithHeaders(gw.url + '/' + txId, 15000);
+        if (result && result.body && result.body.length > 100) {
+          const sniffed = sniffContentType(result.body);
+          const ct = sniffed || result.contentType || 'application/octet-stream';
+          res.set('Content-Type', ct);
+          res.set('Content-Length', result.body.length);
+          res.set('Cache-Control', 'public, max-age=31536000, immutable');
+          return res.send(result.body);
+        }
+      } catch (err) { lastError = err.message; }
+    }
+    res.status(404).send('Content not available');
+  });
+
 }
 
 function serveContent(res, txId, body, declaredType, gw) {
