@@ -35,7 +35,7 @@ For a censorship-resistant news blog, photos are critical:
 - 🎬 **Video clips** — same mechanism, larger files
 - 🔗 **Permanent URLs** — share links that never rot
 
-The cost for this 665KB photo: **~$0.01** in Turbo credits.
+The cost for this 665KB photo: **$0.02** (2 cents) in Turbo credits.
 
 ## How It Works
 
